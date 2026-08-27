@@ -1,3 +1,4 @@
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 
@@ -5,8 +6,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("Campus Route Finder");
-        System.out.println("--------------------");
+        System.out.println("========================================");
+        System.out.println("          CAMPUS ROUTE FINDER");
+        System.out.println("          BFS Shortest Path");
+        System.out.println("========================================");     
 
         CampusGraph graph = new CampusGraph();
 
@@ -19,6 +22,7 @@ public class Main {
         graph.addLocation("Admin Block");
         graph.addLocation("Auditorium");
         graph.addLocation("Hostel");
+        graph.addLocation("Medical Center");
 
         // Add connections between locations
         graph.addConnection("Main Gate", "Library");
@@ -33,7 +37,16 @@ public class Main {
 
         graph.addConnection("Auditorium", "Hostel");
 
-        System.out.println("Campus graph created successfully.");
+        System.out.println("\nCampus graph created successfully.");
+        System.out.println("\nAvailable Locations:");
+
+        Collection<Location> locations = graph.getAllLocations();
+
+        for (Location location : locations) {
+            System.out.println("- " + location.getName());
+        }
+
+        System.out.println();
 
         Scanner scanner = new Scanner(System.in);
 
@@ -47,7 +60,8 @@ public class Main {
         Location target = graph.getLocation(targetName);
 
         if (start == null || target == null) {
-            System.out.println("Invalid location.");
+            System.out.println("\nInvalid location.");
+            scanner.close();
             return;
         }
 
@@ -61,13 +75,15 @@ public class Main {
             System.out.println("\nShortest Route:");
 
             for (int i = 0; i < path.size(); i++) {
-                System.out.print(path.get(i).getName());
+                System.out.println("[" + path.get(i).getName() + "]");
 
                 if (i < path.size() - 1) {
-                    System.out.print(" -> ");
+                    System.out.println("     |");
+                    System.out.println("     ↓");
                 }
             }
 
+            // Number of edges = number of locations - 1
             int hopCount = path.size() - 1;
 
             System.out.println("\nHop Count: " + hopCount);
@@ -76,3 +92,4 @@ public class Main {
         scanner.close();
     }
 }
+
