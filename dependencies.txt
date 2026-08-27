@@ -1,0 +1,18 @@
+Project Dependencies
+====================
+
+Java Development Kit (JDK) 17 or later
+
+No external libraries or third-party dependencies are required.
+
+The project uses only standard Java libraries:
+- java.util.HashMap
+- java.util.Map
+- java.util.List
+- java.util.ArrayList
+- java.util.Queue
+- java.util.LinkedList
+- java.util.Set
+- java.util.HashSet
+- java.util.Scanner
+- java.util.Collection
