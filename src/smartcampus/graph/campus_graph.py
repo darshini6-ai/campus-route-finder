@@ -1,41 +1,54 @@
+from typing import Dict, List, Tuple
+
+
 class CampusGraph:
-    """
-    Represents the campus as an unweighted graph.
+    """Graph representation of the campus."""
 
-    Each campus location is a node.
-    Each connection between locations is an edge.
-    """
+    def __init__(self) -> None:
+        self.locations: Dict[str, Dict[str, float]] = {}
 
-    def __init__(self):
-        self.adjacency = {}
+    def add_location(self, name: str) -> None:
+        """Add a campus location if it does not already exist."""
+        name = name.strip()
 
-    def add_location(self, location):
-        """Add a location to the graph."""
-        if location not in self.adjacency:
-            self.adjacency[location] = []
+        if name not in self.locations:
+            self.locations[name] = {}
 
-    def add_connection(self, location_a, location_b):
+    def add_connection(
+        self,
+        location_a: str,
+        location_b: str,
+        weight: float = 1,
+    ) -> None:
         """
-        Add a two-way connection between two campus locations.
-        """
+        Add an undirected connection between two locations.
 
+        weight represents the travel cost of the connection.
+        For the original BFS graph, the default weight is 1.
+        """
         self.add_location(location_a)
         self.add_location(location_b)
 
-        if location_b not in self.adjacency[location_a]:
-            self.adjacency[location_a].append(location_b)
+        self.locations[location_a][location_b] = weight
+        self.locations[location_b][location_a] = weight
 
-        if location_a not in self.adjacency[location_b]:
-            self.adjacency[location_b].append(location_a)
+    def get_neighbors(self, location: str) -> List[str]:
+        """Return neighboring locations."""
+        if location not in self.locations:
+            return []
 
-    def get_neighbors(self, location):
-        """Return locations directly connected to a location."""
-        return self.adjacency.get(location, [])
+        return list(self.locations[location].keys())
 
-    def get_locations(self):
-        """Return all campus locations."""
-        return list(self.adjacency.keys())
+    def get_weighted_neighbors(
+        self,
+        location: str,
+    ) -> List[Tuple[str, float]]:
+        """Return neighboring locations with their edge costs."""
+        if location not in self.locations:
+            return []
 
-    def has_location(self, location):
+        return list(self.locations[location].items())
+
+    def has_location(self, name: str) -> bool:
         """Check whether a location exists."""
-        return location in self.adjacency
+        return name in self.locations
