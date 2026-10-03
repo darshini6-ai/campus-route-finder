@@ -1,13 +1,5 @@
-# Java compiled files
-*.class
-
-# Build output
-out/
-
-# IDE files
-.idea/
-.vscode/
-
-# macOS
-.DS_Store
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
 
