@@ -4,6 +4,10 @@ import streamlit.components.v1 as components
 
 from python_src.campus_graph import CampusGraph
 from python_src.bfs import find_shortest_path
+from python_src.csp.timetable_csp import TimetableCSP
+from python_src.csp.timetable_data import CLASSES, ROOMS, TIME_SLOTS, MAX_HOPS
+from python_src.campus_knowledge import nearest_accessible_lab_with_projector
+from python_src.smart_navigation import uniform_cost_search, a_star_search
 
 
 st.set_page_config(
@@ -753,3 +757,384 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# ---------------------------------------------------------
+# Smart Campus Timetable Scheduling (CSP + AC-3)
+# ---------------------------------------------------------
+
+st.markdown("---")
+st.markdown(
+    '<div id="timetable"></div>',
+    unsafe_allow_html=True
+)
+st.markdown("## 📅 Smart Campus Timetable Scheduling")
+st.write(
+    "Generate a timetable using Constraint Satisfaction Problem (CSP) "
+    "backtracking and compare it with AC-3 constraint propagation."
+)
+
+with st.spinner("Generating and validating timetables..."):
+    # Solve without AC-3 propagation.
+    basic_solver = TimetableCSP(
+        CLASSES, ROOMS, TIME_SLOTS,
+        campus_graph=graph,
+        max_hops=MAX_HOPS
+    )
+    basic_schedule = basic_solver.solve_backtracking()
+    basic_nodes = basic_solver.nodes_checked
+
+    # Solve with AC-3 propagation.
+    ac3_solver = TimetableCSP(
+        CLASSES, ROOMS, TIME_SLOTS,
+        campus_graph=graph,
+        max_hops=MAX_HOPS
+    )
+    ac3_schedule = ac3_solver.solve_with_ac3()
+    ac3_nodes = ac3_solver.nodes_checked_with_propagation
+
+schedule = ac3_schedule or basic_schedule
+
+if schedule:
+    timetable_rows = []
+
+    for class_name, (room_name, time_slot) in schedule.items():
+        course = CLASSES[class_name]
+        room = ROOMS[room_name]
+
+        timetable_rows.append({
+            "Time Slot": time_slot,
+            "Class": class_name,
+            "Batch": course["batch"],
+            "Faculty": course["faculty"],
+            "Room": room_name,
+            "Class Type": course["type"].title(),
+            "Capacity": room["capacity"],
+        })
+
+    slot_order = {slot: index for index, slot in enumerate(TIME_SLOTS)}
+    timetable_rows.sort(
+        key=lambda row: (
+            slot_order.get(row["Time Slot"], len(TIME_SLOTS)),
+            row["Class"]
+        )
+    )
+
+    st.success("A valid timetable was generated.")
+
+    st.dataframe(
+        timetable_rows,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # Report simultaneous room, faculty, and batch clashes.
+    clashes = []
+
+    for i, first in enumerate(timetable_rows):
+        for second in timetable_rows[i + 1:]:
+            if first["Time Slot"] != second["Time Slot"]:
+                continue
+
+            if first["Room"] == second["Room"]:
+                clashes.append(
+                    f'{first["Time Slot"]}: room clash between '
+                    f'{first["Class"]} and {second["Class"]}.'
+                )
+
+            if first["Faculty"] == second["Faculty"]:
+                clashes.append(
+                    f'{first["Time Slot"]}: faculty clash between '
+                    f'{first["Class"]} and {second["Class"]}.'
+                )
+
+            if first["Batch"] == second["Batch"]:
+                clashes.append(
+                    f'{first["Time Slot"]}: batch clash between '
+                    f'{first["Class"]} and {second["Class"]}.'
+                )
+
+    st.markdown("### 🔎 Clash Report")
+
+    if clashes:
+        for clash in clashes:
+            st.error(clash)
+    else:
+        st.success(
+            "No simultaneous room, faculty, or student-batch clashes detected."
+        )
+
+    st.caption(
+        "The CSP solver also enforces room capacity, lab-only room "
+        "requirements, and the configured walking-distance constraint "
+        "for consecutive classes of the same batch."
+    )
+
+else:
+    st.error(
+        "No valid timetable was found. Review the room, class, and "
+        "time-slot constraints."
+    )
+
+st.markdown("### ⚙️ Search Efficiency: Backtracking vs AC-3")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "Nodes checked without AC-3",
+        basic_nodes
+    )
+
+with col2:
+    st.metric(
+        "Nodes checked with AC-3",
+        ac3_nodes
+    )
+
+if basic_schedule and ac3_schedule:
+    if basic_nodes > 0:
+        reduction = (basic_nodes - ac3_nodes) / basic_nodes * 100
+        st.write(
+            f"Change in search nodes with AC-3: **{reduction:.1f}%** "
+            "(negative means AC-3 checked more nodes for this dataset)."
+        )
+
+    st.caption(
+        "Node counts measure recursive search states, not total runtime. "
+        "AC-3 preprocessing work is not included in the recursive-node count."
+    )
+
+
+# ---------------------------------------------------------
+# Knowledge Base and Campus Ontology
+# ---------------------------------------------------------
+
+st.markdown("---")
+st.markdown("## 🧠 Campus Knowledge Base & Reasoning")
+st.write(
+    "Use campus facts and BFS to infer the nearest reachable "
+    "wheelchair-accessible lab equipped with a projector."
+)
+
+knowledge_start = st.selectbox(
+    "Starting location for knowledge query",
+    LOCATIONS,
+    index=0,
+    key="knowledge_start_location",
+)
+
+if st.button("Find Nearest Accessible Lab", key="find_accessible_lab"):
+    knowledge_result = nearest_accessible_lab_with_projector(
+        knowledge_start,
+        graph,
+    )
+
+    if knowledge_result:
+        st.success(
+            f"Nearest matching room: {knowledge_result['room']}"
+        )
+
+        metric_col1, metric_col2 = st.columns(2)
+        with metric_col1:
+            st.metric("Building", knowledge_result["building"])
+        with metric_col2:
+            st.metric("Distance", f"{knowledge_result['distance_hops']} hops")
+
+        st.markdown("### 🗺️ Inferred route")
+        st.write(" → ".join(knowledge_result["path"]))
+
+        st.markdown("### 🔍 Inference trace")
+        for step_number, explanation in enumerate(
+            knowledge_result["inference_trace"], start=1
+        ):
+            st.write(f"**Step {step_number}.** {explanation}")
+
+        st.caption(
+            "The result depends on the sample room facts in "
+            "python_src/campus_knowledge.py. Verify accessibility and "
+            "projector information against the real campus before use."
+        )
+    else:
+        st.warning(
+            "No reachable lab satisfies all the required conditions "
+            "from this starting location."
+        )
+
+
+# ---------------------------------------------------------
+# Smart Navigation: blocked paths and congestion
+# ---------------------------------------------------------
+
+st.markdown("---")
+st.markdown("## 🚦 Smart Navigation Under Congestion")
+st.write(
+    "Simulate construction closures and peak-hour travel costs. "
+    "Compare shortest-hop routing with cost-aware search."
+)
+
+nav_col1, nav_col2 = st.columns(2)
+
+with nav_col1:
+    nav_start = st.selectbox(
+        "Navigation starting point",
+        LOCATIONS,
+        index=0,
+        key="smart_nav_start",
+    )
+
+with nav_col2:
+    nav_goal = st.selectbox(
+        "Navigation destination",
+        LOCATIONS,
+        index=6,
+        key="smart_nav_goal",
+    )
+
+edge_labels = [
+    f"{first} ↔ {second}"
+    for first, second in CONNECTIONS
+]
+edge_lookup = {
+    f"{first} ↔ {second}": (first, second)
+    for first, second in CONNECTIONS
+}
+
+blocked_labels = st.multiselect(
+    "Simulate blocked connections (construction/closure)",
+    options=edge_labels,
+    default=[],
+    key="smart_nav_blocked",
+)
+
+peak_hour = st.checkbox(
+    "Enable peak-hour congestion costs",
+    value=True,
+    key="smart_nav_peak_hour",
+)
+
+# Base costs are one unit per connection.
+# Higher costs represent illustrative peak-hour delays.
+base_edge_costs = {
+    edge: 1.0 for edge in CONNECTIONS
+}
+
+peak_edge_costs = {
+    ("Main Gate", "Library"): 1.0,
+    ("Main Gate", "Canteen"): 3.0,
+    ("Library", "CSE Block"): 1.0,
+    ("CSE Block", "AI Lab"): 1.0,
+    ("AI Lab", "Auditorium"): 1.0,
+    ("Canteen", "Admin Block"): 1.0,
+    ("Admin Block", "Auditorium"): 1.0,
+    ("Auditorium", "Hostel"): 1.0,
+}
+
+active_edge_costs = (
+    peak_edge_costs if peak_hour else base_edge_costs
+)
+blocked_edges = {
+    edge_lookup[label] for label in blocked_labels
+}
+
+if st.button("Compare Navigation Algorithms", key="compare_navigation"):
+    # Build a graph containing only currently open connections.
+    active_graph = CampusGraph()
+    for location in LOCATIONS:
+        active_graph.add_location(location)
+
+    for first, second in CONNECTIONS:
+        if (first, second) not in blocked_edges:
+            active_graph.add_connection(first, second)
+
+    # BFS minimises hops on the available, unweighted graph.
+    bfs_path = find_shortest_path(
+        active_graph, nav_start, nav_goal
+    )
+
+    # UCS and A* minimise the configured travel cost.
+    ucs_result = uniform_cost_search(
+        graph,
+        nav_start,
+        nav_goal,
+        edge_costs=active_edge_costs,
+        blocked_edges=blocked_edges,
+    )
+    astar_result = a_star_search(
+        graph,
+        nav_start,
+        nav_goal,
+        edge_costs=active_edge_costs,
+        blocked_edges=blocked_edges,
+    )
+
+    result_cols = st.columns(3)
+
+    with result_cols[0]:
+        st.markdown("### BFS")
+        if bfs_path:
+            st.write(" → ".join(bfs_path))
+            st.metric("Hops", len(bfs_path) - 1)
+        else:
+            st.warning("No available route.")
+
+    with result_cols[1]:
+        st.markdown("### UCS")
+        if ucs_result:
+            st.write(" → ".join(ucs_result["path"]))
+            st.metric("Travel cost", f'{ucs_result["cost"]:.1f}')
+            st.caption(
+                f'{ucs_result["nodes_checked"]} nodes checked'
+            )
+        else:
+            st.warning("No available route.")
+
+    with result_cols[2]:
+        st.markdown("### A*")
+        if astar_result:
+            st.write(" → ".join(astar_result["path"]))
+            st.metric("Travel cost", f'{astar_result["cost"]:.1f}')
+            st.caption(
+                f'{astar_result["nodes_checked"]} nodes checked'
+            )
+        else:
+            st.warning("No available route.")
+
+    st.markdown("### 📝 Route explanation")
+
+    if blocked_edges:
+        st.write(
+            "Blocked connections were removed from the available network: "
+            + ", ".join(
+                f"{first} ↔ {second}"
+                for first, second in sorted(blocked_edges)
+            )
+            + "."
+        )
+    else:
+        st.write("No connections are blocked in this scenario.")
+
+    if peak_hour:
+        st.write(
+            "Peak-hour costs are enabled. Main Gate ↔ Canteen has an "
+            "illustrative cost of 3; the other connections have cost 1."
+        )
+    else:
+        st.write(
+            "Peak-hour costs are disabled; each connection has cost 1."
+        )
+
+    if ucs_result and astar_result:
+        if abs(ucs_result["cost"] - astar_result["cost"]) < 1e-9:
+            st.success(
+                "UCS and A* found routes with the same minimum travel cost."
+            )
+        else:
+            st.error(
+                "UCS and A* returned different costs; investigate the scenario."
+            )
+
+    st.caption(
+        "These are illustrative costs, not measured travel times. "
+        "BFS minimises hops, while UCS and A* minimise weighted travel cost."
+    )
+
