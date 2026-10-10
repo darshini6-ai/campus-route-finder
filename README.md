@@ -1,65 +1,55 @@
-# Campus Route Finder using BFS
+# Campus Route Finder — Smart Campus AI System
 
-A Java-based campus route finder that uses Breadth-First Search (BFS) to find the shortest route between two campus locations in an unweighted graph.
+An AI-based campus navigation and planning project that combines graph search, constraint satisfaction, knowledge-based reasoning, and a Streamlit dashboard.
 
-## 1. Problem Statement
+The project preserves the original Java BFS implementation and extends it with Python-based interactive navigation and smart campus planning features.
 
-A campus can be represented as a graph.
+## 1. Project Objectives
 
-- Each campus location is a vertex.
-- Each connection between two locations is an edge.
-- Every connection represents one hop.
-- All connections have equal cost.
+- Find the shortest-hop route between campus locations using Breadth-First Search (BFS).
+- Compare unweighted BFS routes with cost-aware Uniform Cost Search (UCS) and A* search.
+- Generate campus timetables using backtracking and constraint propagation with AC-3.
+- Demonstrate rule-based knowledge reasoning for finding suitable campus facilities.
+- Visualize routes and AI results through a Streamlit dashboard.
 
-The goal is to find the route with the minimum number of hops between a starting location and a destination.
+## 2. Technologies
 
-## 2. Why BFS?
-
-Breadth-First Search is suitable because the campus graph is unweighted.
-
-BFS explores the graph level by level.
-
-- Level 0: starting location
-- Level 1: locations one hop away
-- Level 2: locations two hops away
-- Level 3: locations three hops away
-
-Therefore, when BFS first reaches the destination, it has found a path with the minimum possible number of edges.
-
-For example, there are two possible routes from Main Gate to Auditorium.
-
-```text
-Route 1:
-Main Gate -> Library -> CSE Block -> AI Lab -> Auditorium
-
-Hop count: 4
-
-Route 2:
-Main Gate -> Canteen -> Admin Block -> Auditorium
-
-Hop count: 3
-```
-
-BFS selects Route 2 because it contains fewer edges.
+- Java and object-oriented programming
+- Python
+- Streamlit
+- Graph search: BFS, UCS, and A*
+- Constraint satisfaction: backtracking and AC-3
+- Rule-based knowledge representation
+- Git and GitHub
+- pytest for Python tests
 
 ## 3. Features
 
-- Represents campus locations as graph vertices.
-- Represents connections as undirected edges.
-- Uses Breadth-First Search.
-- Finds the shortest route.
-- Displays the route visually.
-- Displays the hop count.
-- Accepts user input.
-- Supports case-insensitive location names.
-- Handles invalid locations.
-- Handles the same start and destination.
-- Handles destinations with no available route.
-- Includes BFS test cases.
+### Campus Route Finding
 
-## 4. Campus Locations
+Campus locations are represented as graph vertices, and connections are represented as edges. BFS finds a route with the minimum number of edges when all connections have equal cost.
 
-The project contains:
+### Smart Navigation
+
+UCS and A* support cost-aware routing. The smart navigation module can model blocked connections and estimated congestion costs to compare routes under different scenarios.
+
+Congestion values are illustrative estimates, not measured live traffic data.
+
+### Timetable Constraint Satisfaction
+
+The timetable module uses backtracking and AC-3 constraint propagation to help generate schedules while checking the implemented room, faculty, batch, and other scheduling constraints.
+
+### Knowledge-Based Reasoning
+
+A rule-based campus knowledge module stores facility properties and uses graph distances to identify suitable nearby facilities. Results depend on the facts and rules defined in the project.
+
+### Interactive Dashboard
+
+The Streamlit application provides a visual interface for route finding and the implemented AI demonstrations.
+
+## 4. Campus Graph
+
+The current campus graph includes:
 
 - Main Gate
 - Library
@@ -71,236 +61,124 @@ The project contains:
 - Hostel
 - Medical Center
 
-The Medical Center is intentionally isolated for testing the no-route condition.
+The main graph connections are:
 
-## 5. Graph Connections
+- Main Gate — Library
+- Main Gate — Canteen
+- Library — CSE Block
+- CSE Block — AI Lab
+- AI Lab — Auditorium
+- Canteen — Admin Block
+- Admin Block — Auditorium
+- Auditorium — Hostel
 
+The Medical Center is isolated in the route-finding graph to demonstrate the no-route condition.
 
-The graph contains these connections:
+## 5. Repository Structure
 
 ```text
-Main Gate — Library
-Main Gate — Canteen
-Library — CSE Block
-CSE Block — AI Lab
-AI Lab — Auditorium
-Canteen — Admin Block
-Admin Block — Auditorium
-Auditorium — Hostel
-```text
-All connections are bidirectional.
-
-## 6. Object-Oriented Design
-
-### Location
-
-Represents an individual campus location.
-
-It stores the location name and its neighboring locations.
-
-### CampusGraph
-
-Manages the campus graph.
-
-It provides methods for:
-
-- Adding locations
-- Finding locations
-- Adding connections
-- Retrieving all locations
-
-### BFS
-
-Implements the Breadth-First Search algorithm.
-
-It uses:
-
-- Queue
-- Visited set
-- Parent map
-
-The parent map is used to reconstruct the shortest route.
-
-### Main
-
-Provides the command-line interface.
-
-It:
-
-1. Creates the campus graph.
-2. Displays available locations.
-3. Accepts the start location.
-4. Accepts the destination.
-5. Runs BFS.
-6. Displays the shortest route.
-7. Displays the hop count.
-
-## 7. BFS Algorithm
-
-The algorithm works as follows:
-
-1. Add the starting location to a queue.
-2. Mark it as visited.
-3. Set its parent to null.
-4. Remove a location from the queue.
-5. Check its neighboring locations.
-6. If a neighbor has not been visited:
-   - Mark it as visited.
-   - Store its parent.
-   - Add it to the queue.
-7. Continue until the destination is reached or the queue becomes empty.
-8. Reconstruct the route using the parent map.
-9. Reverse the route.
-10. Calculate the hop count.
-
-Hop Count = Number of locations in the path - 1
-
-## 8. Why BFS Gives the Fewest-Edge Path
-
-In an unweighted graph, every edge represents one hop.
-
-BFS explores all locations at distance 1 before locations at distance 2, and all locations at distance 2 before locations at distance 3.
-
-Therefore, when the destination is first reached, all shorter paths have already been considered.
-
-This guarantees that BFS finds a path containing the minimum number of edges.
-
-## 9. Complexity Analysis
-
-For a graph containing V vertices and E edges:
-
-Time Complexity: O(V + E)
-
-Space Complexity: O(V)
-
-BFS visits each vertex and edge at most a constant number of times.
-
-The queue, visited set, and parent map require space proportional to the number of vertices.
-
-## 10. Example Execution
-
-Input:
-
-Enter start location: Main Gate
-
-Enter destination: Auditorium
-
-Output:
-
-Shortest Route:
-
-[Main Gate]
-     |
-     ↓
-[Canteen]
-     |
-     ↓
-[Admin Block]
-     |
-     ↓
-[Auditorium]
-
-Hop Count: 3
-
-## 11. Test Cases
-
-The project includes five test cases.
-
-1. Main Gate -> Auditorium
-   Expected: 3 hops
-
-2. Main Gate -> Main Gate
-   Expected: 0 hops
-
-3. Auditorium -> Main Gate
-   Expected: 3 hops
-
-4. Main Gate -> Hostel
-   Expected: 4 hops
-
-5. Main Gate -> Medical Center
-   Expected: No route
-
-All current BFS tests pass.
-
-## 12. How to Run
-
-Requirements:
-
-- JDK 17 or later
-- Terminal
-- No external libraries
-
-Compile the application:
-
-javac -d out src/*.java
-
-Run the application:
-
-java -cp out Main
-
-Compile the tests:
-
-javac -d out src/*.java tests/BFSTest.java
-
-Run the tests:
-
-java -cp out BFSTest
-
-## 13. Project Structure
-
 campus-route-finder/
+├── app.py
+├── python_src/
+├── src/
+├── tests/
+├── docs/
+│   ├── Campus Route Finder (IA-2).pdf
+│   └── report.pdf
+├── requirements.txt
+├── dependencies.txt
+├── pytest.ini
+├── README.md
+└── LICENSE
+```
 
-src/
-    Main.java
-    Location.java
-    CampusGraph.java
-    BFS.java
+The Java source files are retained in `src/`. The Python AI modules are in `python_src/`, and the Streamlit interface is in `app.py`.
 
-tests/
-    BFSTest.java
+## 6. Setup and Run
 
-docs/
+### Requirements
 
-README.md
-dependencies.txt
-.gitignore
-LICENSE
-
-## 14. Limitations
-
-This project uses an unweighted graph.
-
-Therefore:
-
-- Every connection is treated as one hop.
-- Physical distance is not considered.
-- Walking time is not considered.
-- Traffic is not considered.
-- Accessibility conditions are not considered.
-- The graph is manually defined in the source code.
-- The application currently uses a command-line interface.
-
-A future version could use weighted graphs and Dijkstra's algorithm to consider actual distances or travel times.
-
-## 15. Technologies
-
-- Java
-- Object-Oriented Programming
-- Graph Data Structures
-- Breadth-First Search
+- Python installed
 - Git
-- GitHub
+- Internet access for the initial dependency installation
 
-## 16. Academic Objective
+### Install Python dependencies
 
-This project demonstrates the practical application of Breadth-First Search to a real-world campus navigation problem.
+From the repository root, run:
 
-The project specifically demonstrates why BFS produces the minimum-edge path when all graph edges have equal weight.
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-## 17. Author
+### Launch the Streamlit dashboard
 
-Darshini
+```bash
+python3 -m streamlit run app.py
+```
 
-B.E. Computer Science and Engineering
+Streamlit will display a local URL in the terminal. Open that URL in your browser.
+
+### Run the Python tests
+
+```bash
+python3 -m pytest -v
+```
+
+### Run the original Java application
+
+If JDK 17 or later is installed, compile and run the Java version:
+
+```bash
+javac -d out src/*.java
+java -cp out Main
+```
+
+## 7. Algorithm Overview
+
+| Algorithm | Purpose |
+|---|---|
+| BFS | Finds minimum-hop paths in an unweighted graph |
+| UCS | Finds minimum-cost paths with non-negative edge costs |
+| A* | Uses path cost and a heuristic to guide cost-aware search |
+| Backtracking | Searches for valid timetable assignments |
+| AC-3 | Propagates constraint restrictions to reduce possible assignments |
+| Rule-based reasoning | Uses stored facts and rules to identify suitable facilities |
+
+## 8. Complexity
+
+For a graph with \(V\) vertices and \(E\) edges, BFS takes \(O(V+E)\) time and \(O(V)\) auxiliary space when using an adjacency-list representation.
+
+UCS and A* performance depends on the graph, edge costs, and heuristic. Backtracking timetable search can be exponential in the number of variables in the worst case. AC-3 reduces domains through constraint propagation, but does not eliminate the worst-case complexity of the full CSP search.
+
+## 9. Testing and Evaluation
+
+The repository includes Python tests for the implemented graph search, navigation, timetable, and knowledge modules.
+
+Run:
+
+```bash
+python3 -m pytest -v
+```
+
+Use the actual test output and dashboard screenshots in the report when presenting results. Congestion experiments use estimated scenario costs; they should not be described as real-world traffic measurements.
+
+## 10. Limitations and Future Improvements
+
+- Campus connections and facility facts are manually defined.
+- Congestion costs are illustrative rather than live measurements.
+- Accessibility information must be verified against the actual campus.
+- A* performance depends on the quality and validity of its heuristic.
+- Timetable results depend on the constraints and domains encoded in the program.
+
+Future work could include verified campus accessibility data, real walking distances, live congestion information, a larger timetable dataset, and additional evaluation across more scenarios.
+
+## 11. Academic Integrity
+
+This project demonstrates the algorithms and implementation included in the repository. Reported performance should be based on actual program runs and tests. Any AI assistance or external sources should be disclosed according to the course requirements.
+
+## 12. Author
+
+Darshini S.  
+B.E. Computer Science and Engineering  
 Specialization: Artificial Intelligence and Machine Learning
+
