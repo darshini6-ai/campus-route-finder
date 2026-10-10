@@ -1012,6 +1012,14 @@ peak_hour = st.checkbox(
     key="smart_nav_peak_hour",
 )
 
+congestion_scenario = st.selectbox(
+    "Congestion uncertainty scenario",
+    ["Low (estimated)", "Moderate (estimated)", "High (estimated)"],
+    index=1,
+    help="Illustrative scenarios only; these are not measured campus traffic data.",
+    key="congestion_scenario",
+)
+
 # Base costs are one unit per connection.
 # Higher costs represent illustrative peak-hour delays.
 base_edge_costs = {
@@ -1028,6 +1036,13 @@ peak_edge_costs = {
     ("Admin Block", "Auditorium"): 1.0,
     ("Auditorium", "Hostel"): 1.0,
 }
+
+scenario_canteen_cost = {
+    "Low (estimated)": 2.0,
+    "Moderate (estimated)": 3.0,
+    "High (estimated)": 5.0,
+}[congestion_scenario]
+peak_edge_costs[("Main Gate", "Canteen")] = scenario_canteen_cost
 
 active_edge_costs = (
     peak_edge_costs if peak_hour else base_edge_costs
@@ -1115,8 +1130,9 @@ if st.button("Compare Navigation Algorithms", key="compare_navigation"):
 
     if peak_hour:
         st.write(
-            "Peak-hour costs are enabled. Main Gate ↔ Canteen has an "
-            "illustrative cost of 3; the other connections have cost 1."
+            f"Peak-hour costs are enabled ({congestion_scenario.lower()}). "
+            f"Main Gate ↔ Canteen has an illustrative cost of {scenario_canteen_cost:g}; "
+            "the other connections have cost 1."
         )
     else:
         st.write(
